@@ -172,15 +172,6 @@ Esquema completo en `rubrica.schema.json`. Ejemplo mínimo:
 - `puntuacion_maxima` es opcional: si la pones, el script comprueba que cuadra con la suma.
 - `nombre` del nivel es informativo; Moodle solo guarda la definición y los puntos.
 
-## Generar los JSON de la UD2
-
-`rubricas_ud2.json` contiene las 10 rúbricas de la unidad. Para obtener los ficheros
-importables:
-
-```bash
-python generar_json.py rubricas_ud2.json --tarea 1   # solo la Tarea 1
-python generar_json.py rubricas_ud2.json             # las 10
-```
 
 ## A tener en cuenta
 
