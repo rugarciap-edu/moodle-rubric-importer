@@ -7,6 +7,15 @@ harías a mano. Tú inicias sesión con tus datos; el script nunca los pide ni l
 Probado con Moodle 4.5 (rúbrica nueva, reemplazo de una existente, de 2 a 5 niveles
 por criterio, puntos con decimales y opciones de la rúbrica).
 
+Puede ejecutarse desde consola directamente, o utilizar la GUI Tkinter proporcionada.
+
+Además, se proporcionan dos scripts independientes para convertir rúbricas del esquema JSON definido a .xlsx y/o viceversa.
+
+## Roadmap
+
+- Skill para Claude que ayude a la generación de rúbricas en base a materiales propios / tareas.
+- Posibilidad de editar la rúbrica en la GUI Tkinter para realizar ajustes previa importación.
+  
 ## Instalación (una sola vez)
 
 ```bash
@@ -39,8 +48,7 @@ python gui_importar_rubrica.py
    niveles, con definiciones y puntos) y un aviso verde «✓ Estructura válida» o rojo con
    los errores encontrados (JSON mal formado, niveles con puntos repetidos,
    `puntuacion_maxima` que no cuadra, escala que no coincide…). Funciona con `.json` y `.xlsx`.
-5. **Lotes:** si el fichero es un lote JSON (array de rúbricas, `{"rubricas": [...]}` o el
-   maestro `rubricas_ud2.json`), la vista previa muestra todas las rúbricas una bajo otra
+5. **Lotes:** Permite importar un conjunto de rúbricas y asociarlo a múltiples tareas en moodle. Así, si el fichero es un lote JSON (array de rúbricas, `{"rubricas": [...]}` ), la vista previa muestra todas las rúbricas una bajo otra
    (rueda del ratón, barra de desplazamiento o botones «◀ Anterior / Siguiente ▶»), cada
    una con su propio estado válido/no válido. En un lote:
    - El campo único de URL se desactiva y se activa **«Tareas del lote…»**, un popup con
@@ -59,6 +67,17 @@ python gui_importar_rubrica.py
 
 La GUI es solo una capa sobre `importar_rubrica.py`: ejecuta el mismo script con los
 parámetros equivalentes.
+
+A continuación se muestran un par de capturas de la interfaz en su estado actual:
+
+Ventana principal con selector de archivo de rúbrica/s y configuración de importación:
+<img width="443" height="350" alt="image" src="https://github.com/user-attachments/assets/71e971a4-d315-4ea3-a96a-e47c6074cd26" />
+
+Visualización de rúbricas. En caso de tratarse de un archivo con un lote, se mostrará la previsualización de todas ellas y la posibilidad de relacionar
+cada rúbrica con la tarea moodle que corresponda:
+
+<img width="508" height="308" alt="image" src="https://github.com/user-attachments/assets/dcc82a16-7f3a-43df-aa24-8c347b67f90b" />
+
 
 ## Rúbricas en Excel
 
