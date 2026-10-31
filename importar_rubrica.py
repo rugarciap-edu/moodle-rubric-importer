@@ -208,23 +208,74 @@ def raiz_moodle(url_tarea: str) -> str:
     return f"{u.scheme}://{u.netloc}{ruta}"
 
 
+# --------------------------------------------------------------------------
+# Comunicación: consola normal o protocolo para la GUI (--gui)
+#
+# En modo GUI no se escribe texto libre: cada línea de stdout es "@@" + un JSON
+#   {"tipo": "mensaje", "codigo": <str>, ...datos}   -> información (el texto lo pone la GUI)
+#   {"tipo": "pregunta", "codigo": <str>, ...datos}  -> espera una línea JSON por stdin:
+#                                                       {"respuesta": <bool|str>}
+# Códigos de mensaje: resumen, validado, error_validacion, falta_playwright, url_invalida,
+#   login_requerido, tarea, rubrica_existente, rubrica_guardada, error, error_inesperado.
+# Códigos de pregunta: url (respuesta str), confirmar_sustitucion, confirmar_guardado,
+#   cerrar_navegador (respuesta bool).
+# --------------------------------------------------------------------------
+MODO_GUI = False
+PREFIJO_PROTOCOLO = "@@"
+
+
+def _emitir(tipo: str, codigo: str, **datos: Any) -> None:
+    print(PREFIJO_PROTOCOLO + json.dumps({"tipo": tipo, "codigo": codigo, **datos}), flush=True)
+
+
+def informar(codigo: str, texto: str = "", **datos: Any) -> None:
+    if MODO_GUI:
+        _emitir("mensaje", codigo, **datos)
+    elif texto:
+        print(texto)
+
+
+def informar_resumen(r: Rubrica, validado: bool = False) -> None:
+    if MODO_GUI:
+        _emitir("mensaje", "resumen", validado=validado, nombre=r.nombre, maximo=r.puntuacion_maxima,
+                criterios=[{"descripcion": c.descripcion, "puntos": [n.puntos for n in c.niveles]}
+                           for c in r.criterios])
+    else:
+        print(("✓ " if validado else "\n") + resumen(r))
+
+
+def _respuesta_gui() -> Any:
+    linea = sys.stdin.readline()
+    if not linea:
+        raise EOFError
+    return json.loads(linea).get("respuesta")
+
+
 def pedir_url(rubrica: Rubrica, base: str | None) -> str:
-    print(f"\n¿En qué tarea de Moodle va la rúbrica «{rubrica.nombre}»?")
-    print("  Pega la URL de la tarea (…/mod/assign/view.php?id=NNN) o solo el número id.")
+    if not MODO_GUI:
+        print(f"\n¿En qué tarea de Moodle va la rúbrica «{rubrica.nombre}»?")
+        print("  Pega la URL de la tarea (…/mod/assign/view.php?id=NNN) o solo el número id.")
     while True:
-        texto = input("  URL o id: ").strip()
+        if MODO_GUI:
+            _emitir("pregunta", "url", rubrica=rubrica.nombre)
+            texto = str(_respuesta_gui() or "").strip()
+        else:
+            texto = input("  URL o id: ").strip()
         try:
             return normalizar_url_tarea(texto, base)
         except ErrorRubrica as e:
-            print(f"  ✗ {e}")
+            informar("url_invalida", f"  ✗ {e}", detalle=str(e))
 
 
 # --------------------------------------------------------------------------
 # Automatización del navegador
 # --------------------------------------------------------------------------
-def confirmar(pregunta: str) -> bool:
+def confirmar(codigo: str, pregunta: str, **datos: Any) -> bool:
     """Pregunta sí/no. Cualquier respuesta que no sea un sí explícito cuenta como NO."""
     try:
+        if MODO_GUI:
+            _emitir("pregunta", codigo, **datos)
+            return _respuesta_gui() is True
         return input(pregunta).strip().lower() in ("s", "si", "sí", "y", "yes")
     except EOFError:
         return False
@@ -286,8 +337,9 @@ class Importador:
         self._esperar()
         if "/mod/assign/view.php" not in self.page.url:
             host = urlparse(url_tarea).netloc
-            print("\n  → Inicia sesión en la ventana del navegador con tus datos.")
-            print("    El script continuará solo en cuanto entres en Moodle.")
+            informar("login_requerido",
+                     "\n  → Inicia sesión en la ventana del navegador con tus datos.\n"
+                     "    El script continuará solo en cuanto entres en Moodle.")
             for _ in range(espera_login_s):
                 self.page.wait_for_timeout(1000)
                 u = urlparse(self.page.url)
@@ -325,6 +377,13 @@ class Importador:
 
         borrar = self.page.locator('a[href*="deleteform="]').first
         if borrar.count() > 0:
+            if MODO_GUI:
+                # En la GUI no hay opción previa: se pregunta siempre antes de sustituir.
+                informar("rubrica_existente")
+                if not confirmar("confirmar_sustitucion", ""):
+                    raise ErrorRubrica("Cancelado por el usuario: la rúbrica existente se mantiene.")
+                informar("sobrescribira")
+                return areaid
             if not self.reemplazar:
                 raise ErrorRubrica(
                     "Esta tarea ya tiene una rúbrica definida y no se ha tocado. "
@@ -332,12 +391,13 @@ class Importador:
             # No se borra nada aquí: la rúbrica existente se sobrescribe en el editor y el
             # cambio solo se aplica al guardar. Si se cancela, la original queda intacta.
             if self.revisar:
-                print("\n  ! Esta tarea YA TIENE una rúbrica. Se sustituirá su contenido por el del JSON")
-                print("    cuando confirmes el guardado. Si ya has calificado con ella, Moodle")
-                print("    puede marcar esas calificaciones para revisar.")
-                if not confirmar("    ¿Continuar y preparar la sustitución? [s/N] "):
+                informar("rubrica_existente",
+                         "\n  ! Esta tarea YA TIENE una rúbrica. Se sustituirá su contenido por el del JSON\n"
+                         "    cuando confirmes el guardado. Si ya has calificado con ella, Moodle\n"
+                         "    puede marcar esas calificaciones para revisar.")
+                if not confirmar("confirmar_sustitucion", "    ¿Continuar y preparar la sustitución? [s/N] "):
                     raise ErrorRubrica("Cancelado por el usuario: la rúbrica existente se mantiene.")
-            print("  · La rúbrica existente se sobrescribirá al guardar.")
+            informar("sobrescribira", "  · La rúbrica existente se sobrescribirá al guardar.")
         return areaid
 
     # ---------- editor de rúbrica ----------
@@ -364,7 +424,8 @@ class Importador:
                 pref = f"rubric[criteria][{cid}][levels][{lid}]"
                 self._poner(f'textarea[name="{pref}[definition]"]', nivel.definicion)
                 self._poner(f'input[name="{pref}[score]"]', fmt_puntos(nivel.puntos))
-            print(f"  · Criterio {i + 1}/{len(r.criterios)}: {crit.descripcion}")
+            informar("criterio", f"  · Criterio {i + 1}/{len(r.criterios)}: {crit.descripcion}",
+                     indice=i + 1, total=len(r.criterios), descripcion=crit.descripcion)
 
         # Criterios sobrantes (p. ej. al sustituir una rúbrica que tenía más criterios)
         ids = self.page.evaluate(JS_IDS_CRITERIOS)
@@ -418,7 +479,8 @@ class Importador:
             nombre = f"rubric[options][{OPCIONES_MOODLE[clave]}]"
             loc = self.page.locator(f'[name="{nombre}"]:not([type="hidden"])').first
             if loc.count() == 0:
-                print(f"  ! Opción «{clave}» no encontrada en esta versión de Moodle; se ignora.")
+                informar("opcion_ignorada", f"  ! Opción «{clave}» no encontrada en esta versión de Moodle; se ignora.",
+                         opcion=str(clave))
                 continue
             tag = loc.evaluate("el => el.tagName.toLowerCase()")
             if tag == "select":
@@ -428,8 +490,9 @@ class Importador:
 
     def guardar(self) -> None:
         if self.revisar:
-            print("\n  → Revisa la rúbrica en el navegador. NO pulses guardar allí.")
-            if not confirmar("    ¿Guardar ahora? [s/N] "):
+            if not MODO_GUI:
+                print("\n  → Revisa la rúbrica en el navegador. NO pulses guardar allí.")
+            if not confirmar("confirmar_guardado", "    ¿Guardar ahora? [s/N] "):
                 raise ErrorRubrica("Cancelado por el usuario: no se ha guardado nada; Moodle queda como estaba.")
         boton = "#id_saverubricdraft" if self.borrador else "#id_saverubric"
         self._clic(f'{boton}, input[name="{boton[4:]}"]')
@@ -443,7 +506,8 @@ def importar(rubricas: list[Rubrica], args) -> int:
     try:
         from playwright.sync_api import sync_playwright
     except ImportError:
-        print("Falta Playwright. Instálalo con:\n  pip install playwright\n  python -m playwright install chromium")
+        informar("falta_playwright",
+                 "Falta Playwright. Instálalo con:\n  pip install playwright\n  python -m playwright install chromium")
         return 2
 
     fallos = 0
@@ -464,35 +528,41 @@ def importar(rubricas: list[Rubrica], args) -> int:
         imp = Importador(page, not args.sin_revisar, args.reemplazar, args.borrador)
 
         for r in rubricas:
-            print("\n" + resumen(r))
+            informar_resumen(r)
             url = args.url or r.url
             url = normalizar_url_tarea(url, args.moodle) if url else pedir_url(r, args.moodle)
             base = raiz_moodle(url)
             try:
                 contextid, titulo = imp.abrir_tarea(url)
                 fichero_sesion.write_text(json.dumps(ctx.cookies()), encoding="utf-8")
-                print(f"  · Tarea: {titulo}")
+                informar("tarea", f"  · Tarea: {titulo}", titulo=titulo)
                 areaid = imp.activar_rubrica(base, contextid)
                 imp.rellenar(base, areaid, r)
                 imp.guardar()
-                print(f"  ✓ Rúbrica «{r.nombre}» guardada.")
-                print("    Recuerda: Moodle escala la puntuación de la rúbrica a la calificación máxima de la tarea.")
+                informar("rubrica_guardada",
+                         f"  ✓ Rúbrica «{r.nombre}» guardada.\n"
+                         "    Recuerda: Moodle escala la puntuación de la rúbrica a la calificación máxima de la tarea.",
+                         nombre=r.nombre)
             except ErrorRubrica as e:
                 fallos += 1
-                print(f"  ✗ {e}")
+                informar("error", f"  ✗ {e}", detalle=str(e))
             except Exception as e:  # errores de Playwright: selector, tiempo de espera…
                 fallos += 1
                 captura = Path(f"error_{(r.origen.stem if r.origen else 'rubrica')}.png")
                 try:
                     page.screenshot(path=str(captura), full_page=True)
-                    print(f"  ✗ Error inesperado: {e}\n    Captura guardada en {captura.resolve()}")
+                    informar("error_inesperado", f"  ✗ Error inesperado: {e}\n    Captura guardada en {captura.resolve()}",
+                             detalle=str(e), captura=str(captura.resolve()))
                 except Exception:
-                    print(f"  ✗ Error inesperado: {e}")
+                    informar("error_inesperado", f"  ✗ Error inesperado: {e}", detalle=str(e))
 
-        try:
-            input("\nTerminado. Pulsa Intro para cerrar el navegador… ")
-        except EOFError:
-            pass
+        if MODO_GUI:
+            confirmar("cerrar_navegador", "")
+        else:
+            try:
+                input("\nTerminado. Pulsa Intro para cerrar el navegador… ")
+            except EOFError:
+                pass
         ctx.close()
     return 1 if fallos else 0
 
@@ -517,7 +587,13 @@ def main() -> int:
                     help="Navegador a usar (por defecto, el Chromium de Playwright).")
     ap.add_argument("--perfil", type=Path, default=PERFIL_POR_DEFECTO,
                     help=f"Carpeta del perfil del navegador donde se guarda tu sesión (por defecto {PERFIL_POR_DEFECTO}).")
+    ap.add_argument("--gui", action="store_true",
+                    help="Modo servidor para la GUI: no escribe texto libre; emite mensajes de protocolo "
+                         "(líneas '@@{json}') y lee las respuestas por stdin.")
     args = ap.parse_args()
+
+    global MODO_GUI
+    MODO_GUI = args.gui
 
     if args.url and len(args.ficheros) > 1:
         ap.error("--url solo puede usarse con un único fichero JSON (o pon 'moodle.url_tarea' en cada JSON).")
@@ -527,12 +603,12 @@ def main() -> int:
         try:
             rubricas.append(cargar_rubrica(f))
         except (ErrorRubrica, OSError) as e:
-            print(f"✗ {e}")
+            informar("error_validacion", f"✗ {e}", detalle=str(e))
             return 1
 
     if args.solo_validar:
         for r in rubricas:
-            print("✓ " + resumen(r))
+            informar_resumen(r, validado=True)
         return 0
     return importar(rubricas, args)
 

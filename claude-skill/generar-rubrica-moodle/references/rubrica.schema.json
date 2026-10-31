@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Rúbrica para importar_rubrica.py",
+  "type": "object",
+  "required": [
+    "formato_version",
+    "nombre",
+    "criterios"
+  ],
+  "properties": {
+    "formato_version": {
+      "const": 1
+    },
+    "nombre": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Nombre de la rúbrica en Moodle."
+    },
+    "descripcion": {
+      "type": "string",
+      "description": "Descripción opcional. Cada salto de línea se convierte en un párrafo."
+    },
+    "puntuacion_maxima": {
+      "type": "number",
+      "description": "Opcional. Si se indica, se comprueba que coincide con la suma de los máximos de los criterios."
+    },
+    "escala": {
+      "type": "object",
+      "description": "Opcional. Escala común de niveles (la usa la plantilla Excel). Si existe, cada criterio debe tener numero_niveles niveles y el nombre de cada nivel debe coincidir, en orden, con nombres_niveles.",
+      "required": [
+        "numero_niveles",
+        "nombres_niveles"
+      ],
+      "properties": {
+        "numero_niveles": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 10
+        },
+        "nombres_niveles": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 2,
+          "maxItems": 10
+        }
+      }
+    },
+    "moodle": {
+      "type": "object",
+      "properties": {
+        "url_tarea": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Opcional. URL de la tarea (…/mod/assign/view.php?id=NNN). Si falta, el script la pide."
+        }
+      }
+    },
+    "opciones": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Opciones de la rúbrica en Moodle. Las que no se indiquen mantienen el valor por defecto de Moodle.",
+      "properties": {
+        "ordenar_niveles_ascendente": {
+          "type": "boolean"
+        },
+        "bloquear_cero_puntos": {
+          "type": "boolean"
+        },
+        "mostrar_definicion_siempre": {
+          "type": "boolean"
+        },
+        "mostrar_descripcion_profesor": {
+          "type": "boolean"
+        },
+        "mostrar_descripcion_alumno": {
+          "type": "boolean"
+        },
+        "mostrar_puntos_profesor": {
+          "type": "boolean"
+        },
+        "mostrar_puntos_alumno": {
+          "type": "boolean"
+        },
+        "permitir_comentarios": {
+          "type": "boolean"
+        },
+        "mostrar_comentarios_alumno": {
+          "type": "boolean"
+        }
+      }
+    },
+    "criterios": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "descripcion",
+          "niveles"
+        ],
+        "properties": {
+          "descripcion": {
+            "type": "string",
+            "minLength": 1
+          },
+          "niveles": {
+            "type": "array",
+            "minItems": 2,
+            "description": "Cualquier número de niveles (≥ 2). Los puntos no pueden repetirse dentro de un criterio.",
+            "items": {
+              "type": "object",
+              "required": [
+                "puntos",
+                "definicion"
+              ],
+              "properties": {
+                "nombre": {
+                  "type": "string",
+                  "description": "Informativo (p. ej. «Excelente»); Moodle no lo usa."
+                },
+                "puntos": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "definicion": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
