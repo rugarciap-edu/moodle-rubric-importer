@@ -1,0 +1,106 @@
+{
+  "formato_version": 1,
+  "nombre": "UD2 · Tarea 1 · Hola Mundo en Java desde la consola",
+  "descripcion": "Se evalúa el ciclo editar → compilar (javac) → ejecutar (java) sin IDE y la comprensión del bytecode y de los errores del compilador.",
+  "puntuacion_maxima": 10,
+  "escala": {
+    "numero_niveles": 3,
+    "nombres_niveles": [
+      "Insuficiente",
+      "Adecuado",
+      "Excelente"
+    ]
+  },
+  "moodle": {
+    "url_tarea": null
+  },
+  "opciones": {
+    "ordenar_niveles_ascendente": true,
+    "mostrar_descripcion_alumno": true,
+    "mostrar_puntos_alumno": true,
+    "permitir_comentarios": true,
+    "mostrar_comentarios_alumno": true
+  },
+  "criterios": [
+    {
+      "descripcion": "Compilación, ejecución y bytecode",
+      "niveles": [
+        {
+          "nombre": "Insuficiente",
+          "puntos": 0,
+          "definicion": "No compila o no ejecuta, o no hay capturas que lo demuestren."
+        },
+        {
+          "nombre": "Adecuado",
+          "puntos": 2,
+          "definicion": "Compila y ejecuta correctamente, pero falta alguna captura o no identifica las instrucciones en javap."
+        },
+        {
+          "nombre": "Excelente",
+          "puntos": 4,
+          "definicion": "Crea HolaMundo.java con el nombre exacto, compila con javac, muestra el .class con dir, ejecuta con java y localiza en javap -c la carga del texto (ldc) y la llamada a println. Capturas de los pasos 1–4."
+        }
+      ]
+    },
+    {
+      "descripcion": "Paso de argumentos",
+      "niveles": [
+        {
+          "nombre": "Insuficiente",
+          "puntos": 0,
+          "definicion": "No implementa el argumento o no funciona."
+        },
+        {
+          "nombre": "Adecuado",
+          "puntos": 1,
+          "definicion": "El programa funciona con argumentos, pero no prueba la ejecución sin recompilar o falta un caso."
+        },
+        {
+          "nombre": "Excelente",
+          "puntos": 2,
+          "definicion": "Modifica el programa, recompila y lo ejecuta con y sin argumento. Prueba la ejecución sin recompilar y muestra el resultado."
+        }
+      ]
+    },
+    {
+      "descripcion": "Errores de compilación provocados",
+      "niveles": [
+        {
+          "nombre": "Insuficiente",
+          "puntos": 0,
+          "definicion": "No provoca errores o no los documenta."
+        },
+        {
+          "nombre": "Adecuado",
+          "puntos": 1,
+          "definicion": "Provoca 1–2 errores o los captura sin interpretar el mensaje."
+        },
+        {
+          "nombre": "Excelente",
+          "puntos": 2,
+          "definicion": "Provoca los tres errores (punto y coma, system, nombre de clase), uno cada vez, con captura e interpretación de fichero, línea y mensaje."
+        }
+      ]
+    },
+    {
+      "descripcion": "Cuestiones teóricas",
+      "niveles": [
+        {
+          "nombre": "Insuficiente",
+          "puntos": 0,
+          "definicion": "Responde 0–1 cuestiones o copia literal sin comprensión."
+        },
+        {
+          "nombre": "Adecuado",
+          "puntos": 1,
+          "definicion": "Responde 2–3 cuestiones correctamente o con imprecisiones (p. ej. confunde JDK y JRE)."
+        },
+        {
+          "nombre": "Excelente",
+          "puntos": 2,
+          "definicion": "Responde las 4 cuestiones con sus palabras: javac frente a java, contenido del .class, portabilidad con la JVM/JRE en Linux, por qué hay que recompilar y qué automatiza un IDE."
+        }
+      ]
+    }
+  ]
+}

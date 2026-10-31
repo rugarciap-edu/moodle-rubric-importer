@@ -31,10 +31,16 @@ python gui_importar_rubrica.py
    script lo preguntará.
 3. **Opciones** (valores por defecto entre paréntesis):
    - Pedir confirmación antes de guardar o sustituir (**activada**; si se desmarca, equivale a `--sin-revisar`).
-   - Sobrescribir la rúbrica si la tarea ya tiene una (**desactivada**, `--reemplazar`).
+   - Si la tarea ya tiene rúbrica, la GUI siempre pregunta en una ventana antes de sustituirla.
    - Guardar como borrador (desactivada), forzar nuevo inicio de sesión (desactivada),
      solo validar (desactivada) y navegador (`chromium`, `chrome` o `msedge`).
-4. **Vista previa:** al elegir un fichero (o pulsar «Recargar», o entrar en la pestaña),
+4. **Menú:** «Archivo → Salir» y «Configuración → Idioma» (Galego, Español, English). El idioma
+   cambia al instante en toda la interfaz (etiquetas, botones, vista previa, diálogos y logs
+   nuevos). Los mensajes de error detallados del script `importar_rubrica.py` se muestran en
+   español. Las preferencias (idioma, navegador, confirmación y borrador) se guardan en un
+   fichero `.env` junto a los scripts (`IDIOMA=gl|es|en`, `NAVEGADOR=…`, `CONFIRMAR=…`,
+   `BORRADOR=…`); está en `.gitignore`.
+5. **Vista previa:** al elegir un fichero (o pulsar «Recargar», o entrar en la pestaña),
    la pestaña «Vista previa» muestra la rúbrica como tabla de solo lectura (criterios ×
    niveles, con definiciones y puntos) y un aviso verde «✓ Estructura válida» o rojo con
    los errores encontrados (JSON mal formado, niveles con puntos repetidos,
@@ -48,14 +54,13 @@ python gui_importar_rubrica.py
      sin URL se omiten al importar.
    - La confirmación antes de guardar queda **siempre activada**.
    - **Importar** exige que todas las rúbricas sean válidas y las importa una tras otra
-     (cada una abre y cierra su navegador); contestas a cada confirmación en la pestaña
-     «Importar». «Detener» cancela la actual y las pendientes.
-6. Pulsa **Importar** (pestaña «Importar»). Se abre el navegador; si no tienes sesión, inicia sesión en Moodle.
-   La salida del script aparece en el cuadro «Salida». Cuando el script haga una pregunta
-   (confirmar guardado o sustitución, «Pulsa Intro para cerrar el navegador»), contéstala
-   con los botones **Sí**, **No**, **Intro** o escribiendo en la línea inferior y pulsando
-   «Enviar». Cualquier respuesta que no sea un sí explícito cuenta como NO.
-   **Detener** termina el proceso.
+     (cada una abre y cierra su navegador); contestas a cada confirmación en los diálogos.
+     «Detener» cancela la actual y las pendientes.
+7. Pulsa **Importar** (pestaña «Importar»). Se abre el navegador; si no tienes sesión, inicia sesión en Moodle.
+   El progreso aparece en «Logs de ejecución» (con un spinner mientras se importa y un botón para
+   limpiarlos). Cuando el script necesite una decisión (URL, confirmar guardado o sustitución,
+   cerrar el navegador), la GUI abre un cuadro de diálogo del sistema; cerrar el diálogo de la
+   URL detiene el proceso. **Detener** termina el proceso.
 
 La GUI es solo una capa sobre `importar_rubrica.py`: ejecuta el mismo script con los
 parámetros equivalentes.
